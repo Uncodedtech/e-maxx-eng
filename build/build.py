@@ -1,7 +1,6 @@
 """Converter of the e-maxx-eng project into HTML
 
 Todos:
-- fix search page
 - fix test page
 """
 from argparse import ArgumentParser
@@ -52,26 +51,23 @@ def parse_arguments(args=None):
         help="show progress bar"
     )
     arg_parser.add_argument(
-        "--img-dir",
+        "--static-dir",
         type=lambda p: Path(p).resolve(),
         required=True,
-        help="path to the image directory"
-    )
-    arg_parser.add_argument(
-        "--js-dir",
-        type=lambda p: Path(p).resolve(),
-        required=True,
-        help="path to the js directory"
-    )
-    arg_parser.add_argument(
-        "--css-dir",
-        type=lambda p: Path(p).resolve(),
-        required=True,
-        help="path to the css directory"
+        help="path to the directory with static content (js, css, img)"
     )
 
     arguments = arg_parser.parse_args(args)
     return arguments
+
+
+def split_without_delimiter(s: str, sep: str) -> list[str]:
+    l: list[str] = []
+    for part in s.split(sep):
+        l.append(part)
+        l.append(sep)
+    l.pop()
+    return l
 
 
 class MarkdownConverter(markdown.Markdown):
@@ -110,14 +106,7 @@ class MarkdownConverter(markdown.Markdown):
             if line.strip().startswith("```cpp"):
                 line = "```cpp"
             line = line.replace(r"\\_", "_")
-            if line.strip().startswith("$$"):
-                cleaned_lines.append("$$")
-                line = line.replace("$$", "", 1)
-            if line.strip().endswith("$$"):
-                cleaned_lines.append(line.replace("$$", ""))
-                cleaned_lines.append("$$")
-            else:
-                cleaned_lines.append(line)
+            cleaned_lines.extend(split_without_delimiter(line, "$$"))
 
         html_content = super().convert("\n".join(cleaned_lines))
 
@@ -184,9 +173,7 @@ def main():
         output_path.write_text(html_content)
 
     # move all static files
-    shutil.copytree(args.img_dir, args.output_dir / "img", dirs_exist_ok=True)
-    shutil.copytree(args.css_dir, args.output_dir / "css", dirs_exist_ok=True)
-    shutil.copytree(args.js_dir, args.output_dir / "js", dirs_exist_ok=True)
+    shutil.copytree(args.static_dir, args.output_dir, dirs_exist_ok=True)
 
 
 if __name__ == '__main__':
